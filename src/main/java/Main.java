@@ -91,14 +91,42 @@ public class Main {
         buffer.flip();
         String command = new String(buffer.array(), 0, buffer.limit()).trim();
 
+        String[] parsedCommand = parseRESP(command);
+        if (parsedCommand == null || parsedCommand.length == 0) {
+            return;
+        }
+
         ByteBuffer response;
-        if (!command.isEmpty()) {
+        if (parsedCommand[0].equalsIgnoreCase("PING")) {
             response = ByteBuffer.wrap("+PONG\r\n".getBytes());
+        } else if (parsedCommand[0].equalsIgnoreCase("ECHO") && parsedCommand.length > 1) {
+            String message = parsedCommand[1];
+            String respMessage = "$" + message.length() + "\r\n" + message + "\r\n";
+            response = ByteBuffer.wrap(respMessage.getBytes());
         } else {
-            String errorMessage = "-ERR unknown command '" + command + "'\r\n";
+            String errorMessage = "-ERR unknown command '" + parsedCommand[0] + "'\r\n";
             response = ByteBuffer.wrap(errorMessage.getBytes());
         }
 
+
         clientSocket.write(response);
+    }
+    private static String[] parseRESP(String command) {
+        String[] lines = command.split("\r\n");
+        if (lines.length < 3 || !lines[0].startsWith("*")) {
+            return null;
+        }
+
+        int numArgs = Integer.parseInt(lines[0].substring(1));
+        String[] result = new String[numArgs];
+        int index = 0;
+
+        for (int i = 1; i < lines.length; i++) {
+            if (lines[i].startsWith("$")) {
+                result[index++] = lines[++i];
+            }
+        }
+
+        return result;
     }
 }
