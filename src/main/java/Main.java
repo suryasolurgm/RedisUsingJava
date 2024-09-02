@@ -17,6 +17,7 @@ import java.util.Map;
 public class Main {
     private static final int BUFFER_SIZE = 1024;
     private static final Map<String, String> dataStore = new HashMap<>();
+    private static final Map<String, Long> expiryStore = new HashMap<>();
 
     public static void main(String[] args) {
         int port = 6379;
@@ -109,9 +110,17 @@ public class Main {
             String keyName = parsedCommand[1];
             String value = parsedCommand[2];
             dataStore.put(keyName, value);
+            if (parsedCommand.length > 4 && parsedCommand[3].equalsIgnoreCase("PX")) {
+                long expiryTime = System.currentTimeMillis() + Long.parseLong(parsedCommand[4]);
+                expiryStore.put(keyName, expiryTime);
+            }
             response = ByteBuffer.wrap("+OK\r\n".getBytes());
         } else if (parsedCommand[0].equalsIgnoreCase("GET") && parsedCommand.length > 1) {
             String keyName = parsedCommand[1];
+            if (expiryStore.containsKey(keyName) && System.currentTimeMillis() > expiryStore.get(keyName)) {
+                dataStore.remove(keyName);
+                expiryStore.remove(keyName);
+            }
             String value = dataStore.get(keyName);
             if (value != null) {
                 String respMessage = "$" + value.length() + "\r\n" + value + "\r\n";
