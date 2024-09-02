@@ -9,12 +9,14 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
 import java.util.Iterator;
-
+import java.util.Map;
 
 
 public class Main {
     private static final int BUFFER_SIZE = 1024;
+    private static final Map<String, String> dataStore = new HashMap<>();
 
     public static void main(String[] args) {
         int port = 6379;
@@ -103,7 +105,21 @@ public class Main {
             String message = parsedCommand[1];
             String respMessage = "$" + message.length() + "\r\n" + message + "\r\n";
             response = ByteBuffer.wrap(respMessage.getBytes());
-        } else {
+        }else if (parsedCommand[0].equalsIgnoreCase("SET") && parsedCommand.length > 2) {
+            String keyName = parsedCommand[1];
+            String value = parsedCommand[2];
+            dataStore.put(keyName, value);
+            response = ByteBuffer.wrap("+OK\r\n".getBytes());
+        } else if (parsedCommand[0].equalsIgnoreCase("GET") && parsedCommand.length > 1) {
+            String keyName = parsedCommand[1];
+            String value = dataStore.get(keyName);
+            if (value != null) {
+                String respMessage = "$" + value.length() + "\r\n" + value + "\r\n";
+                response = ByteBuffer.wrap(respMessage.getBytes());
+            } else {
+                response = ByteBuffer.wrap("$-1\r\n".getBytes());
+            }
+        }  else {
             String errorMessage = "-ERR unknown command '" + parsedCommand[0] + "'\r\n";
             response = ByteBuffer.wrap(errorMessage.getBytes());
         }
