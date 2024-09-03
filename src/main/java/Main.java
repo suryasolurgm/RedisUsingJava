@@ -1,9 +1,8 @@
-import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import commands.Command;
+import factories.CommandFactory;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -13,21 +12,40 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-
 public class Main {
     private static final int BUFFER_SIZE = 1024;
     private static final Map<String, String> dataStore = new HashMap<>();
     private static final Map<String, Long> expiryStore = new HashMap<>();
+    private static String dir = "/tmp";
+    private static String dbfilename = "dump.rdb";
+    private static CommandFactory commandFactory ;
 
     public static void main(String[] args) {
         int port = 6379;
-        if (args.length > 0) {
-            try {
-                port = Integer.parseInt(args[0]);
-            } catch (NumberFormatException e) {
-                System.err.println("Invalid port number. Using default port 6379.");
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "--dir":
+                    if (i + 1 < args.length) {
+                        dir = args[++i];
+                    }
+                    break;
+                case "--dbfilename":
+                    if (i + 1 < args.length) {
+                        dbfilename = args[++i];
+                    }
+                    break;
+                default:
+                    try {
+                        port = Integer.parseInt(args[i]);
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid port number. Using default port 6379.");
+                    }
+                    break;
             }
         }
+
+        commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename);
+
 
         try (Selector selector = Selector.open();
              ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
@@ -99,43 +117,18 @@ public class Main {
             return;
         }
 
+        Command cmd = commandFactory.getCommand(parsedCommand[0]);
         ByteBuffer response;
-        if (parsedCommand[0].equalsIgnoreCase("PING")) {
-            response = ByteBuffer.wrap("+PONG\r\n".getBytes());
-        } else if (parsedCommand[0].equalsIgnoreCase("ECHO") && parsedCommand.length > 1) {
-            String message = parsedCommand[1];
-            String respMessage = "$" + message.length() + "\r\n" + message + "\r\n";
-            response = ByteBuffer.wrap(respMessage.getBytes());
-        }else if (parsedCommand[0].equalsIgnoreCase("SET") && parsedCommand.length > 2) {
-            String keyName = parsedCommand[1];
-            String value = parsedCommand[2];
-            dataStore.put(keyName, value);
-            if (parsedCommand.length > 4 && parsedCommand[3].equalsIgnoreCase("PX")) {
-                long expiryTime = System.currentTimeMillis() + Long.parseLong(parsedCommand[4]);
-                expiryStore.put(keyName, expiryTime);
-            }
-            response = ByteBuffer.wrap("+OK\r\n".getBytes());
-        } else if (parsedCommand[0].equalsIgnoreCase("GET") && parsedCommand.length > 1) {
-            String keyName = parsedCommand[1];
-            if (expiryStore.containsKey(keyName) && System.currentTimeMillis() > expiryStore.get(keyName)) {
-                dataStore.remove(keyName);
-                expiryStore.remove(keyName);
-            }
-            String value = dataStore.get(keyName);
-            if (value != null) {
-                String respMessage = "$" + value.length() + "\r\n" + value + "\r\n";
-                response = ByteBuffer.wrap(respMessage.getBytes());
-            } else {
-                response = ByteBuffer.wrap("$-1\r\n".getBytes());
-            }
-        }  else {
+        if (cmd != null) {
+            response = cmd.execute(parsedCommand);
+        } else {
             String errorMessage = "-ERR unknown command '" + parsedCommand[0] + "'\r\n";
             response = ByteBuffer.wrap(errorMessage.getBytes());
         }
 
-
         clientSocket.write(response);
     }
+
     private static String[] parseRESP(String command) {
         String[] lines = command.split("\r\n");
         if (lines.length < 3 || !lines[0].startsWith("*")) {
@@ -155,3 +148,5 @@ public class Main {
         return result;
     }
 }
+
+
