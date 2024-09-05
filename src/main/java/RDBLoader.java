@@ -1,17 +1,20 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Map;
 
 public class RDBLoader {
     private final String dir;
     private final String dbfilename;
     private final Map<String, String> dataStore;
-
-    public RDBLoader(String dir, String dbfilename, Map<String, String> dataStore) {
+    private final Map<String, Long> expiryStore;
+    public RDBLoader(String dir, String dbfilename, Map<String, String> dataStore,Map<String, Long> expiryStore) {
         this.dir = dir;
         this.dbfilename = dbfilename;
         this.dataStore = dataStore;
+        this.expiryStore = expiryStore;
     }
 
     public void load() {
@@ -36,6 +39,13 @@ public class RDBLoader {
                 } else if (type == 0xFC || type == 0xFD) { // Expire information
                     byte[] expireBytes = new byte[type == 0xFC ? 8 : 4];
                     fis.read(expireBytes);
+                    long expiryTime = type == 0xFC ? ByteBuffer.wrap(expireBytes).order(ByteOrder.LITTLE_ENDIAN).getLong() : ByteBuffer.wrap(expireBytes).order(ByteOrder.LITTLE_ENDIAN).getInt() * 1000L;
+                    fis.read();
+                    String key = readString(fis);
+                    System.out.println("Key: " + key);
+                    String value = readString(fis);
+                    dataStore.put(key, value);
+                    expiryStore.put(key, expiryTime);
                 } else if (type == 0x00) { // String value
                     String key = readString(fis);
                     System.out.println("Key: " + key);

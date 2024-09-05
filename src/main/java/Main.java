@@ -35,7 +35,7 @@ public class Main {
         }
 
         commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename);
-        RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore);
+        RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore, expiryStore);
         rdbLoader.load();
 
         Server server = new Server(commandFactory, port);
