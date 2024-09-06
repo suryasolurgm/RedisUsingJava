@@ -9,6 +9,7 @@ public class Main {
     private static String dir = "/tmp";
     private static String dbfilename = "dump.rdb";
     private static CommandFactory commandFactory ;
+    private static String role = "master";
 
     public static void main(String[] args) {
         int port = 6379;
@@ -33,13 +34,20 @@ public class Main {
                         }
                     }
                     break;
+                case "--replicaof":
+                    if (i + 1 < args.length) {
+                        role = "slave";
+                        // Skipping master host and port for now
+                        i += 1;
+                    }
+                    break;
                 default:
                     System.err.println("Unknown argument: " + args[i]);
                     break;
             }
         }
 
-        commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename);
+        commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename, role);
         RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore, expiryStore);
         rdbLoader.load();
 
