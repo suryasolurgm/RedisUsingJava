@@ -15,6 +15,7 @@ public class CommandFactory {
         commandMap.put("GET", new GetCommand(dataStore, expiryStore));
         commandMap.put("CONFIG", new ConfigGetCommand(dir, dbfilename));
         commandMap.put("KEYS", new KeysCommand(dataStore));
+        commandMap.put("INFO", new InfoCommand());
     }
 
     public Command getCommand(String commandName) {
