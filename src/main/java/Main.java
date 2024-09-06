@@ -1,9 +1,9 @@
 import factories.CommandFactory;
 import java.util.HashMap;
 import java.util.Map;
+///mnt/c/Users/surya/IdeaProjects/codecrafters-redis-java
 
 public class Main {
-    private static final int BUFFER_SIZE = 1024;
     private static final Map<String, String> dataStore = new HashMap<>();
     private static final Map<String, Long> expiryStore = new HashMap<>();
     private static String dir = "/tmp";
@@ -24,12 +24,17 @@ public class Main {
                         dbfilename = args[++i];
                     }
                     break;
-                default:
-                    try {
-                        port = Integer.parseInt(args[i]);
-                    } catch (NumberFormatException e) {
-                        System.err.println("Invalid port number. Using default port 6379.");
+                case "--port":
+                    if (i + 1 < args.length) {
+                        try {
+                            port = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException e) {
+                            System.err.println("Invalid port number. Using default port 6379.");
+                        }
                     }
+                    break;
+                default:
+                    System.err.println("Unknown argument: " + args[i]);
                     break;
             }
         }
