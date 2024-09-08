@@ -27,41 +27,44 @@ public class Server {
 
     public void start() {
         if ("slave".equals(role)) {
-            ReplicaClient replicaClient = new ReplicaClient(masterHost, masterPort);
+            ReplicaClient replicaClient = new ReplicaClient(masterHost, masterPort,port);
             replicaClient.start();
         }
-        try (Selector selector = Selector.open();
-             ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
 
-            serverSocket.bind(new InetSocketAddress(port));
-            serverSocket.configureBlocking(false);
-            serverSocket.register(selector, SelectionKey.OP_ACCEPT);
 
-            System.out.println("Server is listening on port " + port);
+            try (Selector selector = Selector.open();
+                 ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
 
-            while (true) {
-                selector.select();
-                Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
+                serverSocket.bind(new InetSocketAddress(port));
+                serverSocket.configureBlocking(false);
+                serverSocket.register(selector, SelectionKey.OP_ACCEPT);
 
-                while (keys.hasNext()) {
-                    SelectionKey key = keys.next();
-                    keys.remove();
+                System.out.println("Server is listening on port " + port);
 
-                    if (!key.isValid()) {
-                        continue;
-                    }
+                while (true) {
+                    selector.select();
+                    Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
-                    if (key.isAcceptable()) {
-                        acceptNewClient(selector, serverSocket);
-                    } else if (key.isReadable()) {
-                        handleClient(key);
+                    while (keys.hasNext()) {
+                        SelectionKey key = keys.next();
+                        keys.remove();
+
+                        if (!key.isValid()) {
+                            continue;
+                        }
+
+                        if (key.isAcceptable()) {
+                            acceptNewClient(selector, serverSocket);
+                        } else if (key.isReadable()) {
+                            handleClient(key);
+                        }
                     }
                 }
+            } catch (IOException e) {
+                System.err.println("Server exception: " + e.getMessage());
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            System.err.println("Server exception: " + e.getMessage());
-            e.printStackTrace();
-        }
+
     }
 
     private void acceptNewClient(Selector selector, ServerSocketChannel serverSocket) throws IOException {
