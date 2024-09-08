@@ -10,6 +10,8 @@ public class Main {
     private static String dbfilename = "dump.rdb";
     private static CommandFactory commandFactory ;
     private static String role = "master";
+    private static final String replicationId = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+    private static final long replicationOffset = 0;
 
     public static void main(String[] args) {
         int port = 6379;
@@ -47,7 +49,7 @@ public class Main {
             }
         }
 
-        commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename, role);
+        commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename, role, replicationId, replicationOffset);
         RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore, expiryStore);
         rdbLoader.load();
 
