@@ -12,6 +12,8 @@ public class Main {
     private static String role = "master";
     private static final String replicationId = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
     private static final long replicationOffset = 0;
+    private static String masterHost = null;
+    private static int masterPort = 0;
 
     public static void main(String[] args) {
         int port = 6379;
@@ -41,6 +43,15 @@ public class Main {
                         role = "slave";
                         // Skipping master host and port for now
                         i += 1;
+                        String[] masterInput = args[i].split(" ");
+                        if (masterInput.length == 2) {
+                            masterHost = masterInput[0];
+                            try {
+                                masterPort = Integer.parseInt(masterInput[1]);
+                            } catch (NumberFormatException e) {
+                                System.err.println("Invalid master port number. Using default port 6379.");
+                            }
+                        }
                     }
                     break;
                 default:
@@ -53,7 +64,7 @@ public class Main {
         RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore, expiryStore);
         rdbLoader.load();
 
-        Server server = new Server(commandFactory, port);
+        Server server = new Server(commandFactory, port, role, masterHost, masterPort);
         server.start();
 
     }

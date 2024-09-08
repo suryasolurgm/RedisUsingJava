@@ -14,13 +14,22 @@ public class Server {
     private static final int BUFFER_SIZE = 1024;
     private final CommandFactory commandFactory;
     private final int port;
-
-    public Server(CommandFactory commandFactory, int port) {
+    private final String role;
+    private final String masterHost;
+    private final int masterPort;
+    public Server(CommandFactory commandFactory, int port,String role, String masterHost, int masterPort) {
         this.commandFactory = commandFactory;
         this.port = port;
+        this.role = role;
+        this.masterHost = masterHost;
+        this.masterPort = masterPort;
     }
 
     public void start() {
+        if ("slave".equals(role)) {
+            ReplicaClient replicaClient = new ReplicaClient(masterHost, masterPort);
+            replicaClient.start();
+        }
         try (Selector selector = Selector.open();
              ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
 
