@@ -55,6 +55,19 @@ public class ReplicaClient {
             buffer.flip();
             String replconfCapaPsync2Response = new String(buffer.array(), 0, buffer.limit());
             System.out.println("Received response: " + replconfCapaPsync2Response);
+
+            // Send PSYNC command
+            String psyncCommand = "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n";
+            buffer = ByteBuffer.wrap(psyncCommand.getBytes());
+            socketChannel.write(buffer);
+            System.out.println("Sent PSYNC command to master");
+
+            // Read PSYNC response
+            buffer = ByteBuffer.allocate(BUFFER_SIZE); // Increase buffer size
+            socketChannel.read(buffer);
+            buffer.flip();
+            String psyncResponse = new String(buffer.array(), 0, buffer.limit());
+            System.out.println("Received response: " + psyncResponse);
         } catch (IOException e) {
             System.err.println("Failed to connect to master: " + e.getMessage());
             e.printStackTrace();
