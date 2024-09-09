@@ -18,6 +18,8 @@ public class CommandFactory {
         commandMap.put("KEYS", new KeysCommand(dataStore));
         commandMap.put("INFO", new InfoCommand(role, replicationId, replicationOffset));
         commandMap.put("REPLCONF", new ReplconfCommand());
+        commandMap.put("PSYNC", new PsyncCommand(replicationId, replicationOffset));
+
     }
 
     public Command getCommand(String commandName) {
