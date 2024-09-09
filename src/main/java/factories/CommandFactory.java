@@ -17,6 +17,7 @@ public class CommandFactory {
         commandMap.put("CONFIG", new ConfigGetCommand(dir, dbfilename));
         commandMap.put("KEYS", new KeysCommand(dataStore));
         commandMap.put("INFO", new InfoCommand(role, replicationId, replicationOffset));
+        commandMap.put("REPLCONF", new ReplconfCommand());
     }
 
     public Command getCommand(String commandName) {
