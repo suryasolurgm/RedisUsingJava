@@ -41,7 +41,7 @@ public class Main {
                 case "--replicaof":
                     if (i + 1 < args.length) {
                         role = "slave";
-                        // Skipping master host and port for now
+                        // master host and port are separated by a space
                         i += 1;
                         String[] masterInput = args[i].split(" ");
                         if (masterInput.length == 2) {

@@ -21,7 +21,15 @@ public class CommandFactory {
         commandMap.put("PSYNC", new PsyncCommand(replicationId, replicationOffset));
 
     }
-
+    public boolean isWriteCommand(String commandName) {
+        switch (commandName.toUpperCase()) {
+            case "SET":
+            case "DEL":
+                return true;
+            default:
+                return false;
+        }
+    }
     public Command getCommand(String commandName) {
         return commandMap.get(commandName.toUpperCase());
     }

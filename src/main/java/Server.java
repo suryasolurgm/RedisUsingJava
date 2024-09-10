@@ -1,4 +1,5 @@
 import commands.Command;
+import commands.ReplconfCommand;
 import factories.CommandFactory;
 
 import java.io.IOException;
@@ -17,6 +18,8 @@ public class Server {
     private final String role;
     private final String masterHost;
     private final int masterPort;
+    private SocketChannel replicaChannel;
+
     public Server(CommandFactory commandFactory, int port,String role, String masterHost, int masterPort) {
         this.commandFactory = commandFactory;
         this.port = port;
@@ -97,7 +100,6 @@ public class Server {
 
         buffer.flip();
         String command = new String(buffer.array(), 0, buffer.limit()).trim();
-
         String[] parsedCommand = parseRESP(command);
         if (parsedCommand == null || parsedCommand.length == 0) {
             return;
@@ -107,14 +109,27 @@ public class Server {
         ByteBuffer response;
         if (cmd != null) {
             response = cmd.execute(parsedCommand);
+            if (commandFactory.isWriteCommand(parsedCommand[0]) && replicaChannel != null) {
+                propagateCommandToReplica(buffer);
+            }
         } else {
             String errorMessage = "-ERR unknown command '" + parsedCommand[0] + "'\r\n";
             response = ByteBuffer.wrap(errorMessage.getBytes());
         }
 
         clientSocket.write(response);
+        // Store the replica port number by getting the information from the channel
+        if (cmd instanceof ReplconfCommand) {
+            if(replicaChannel == null){
+                replicaChannel = clientSocket;
+            }
+        }
     }
+    private void propagateCommandToReplica(ByteBuffer buffer) throws IOException {
+        buffer.rewind();
+        replicaChannel.write(buffer);
 
+    }
     private String[] parseRESP(String command) {
         String[] lines = command.split("\r\n");
         if (lines.length < 3 || !lines[0].startsWith("*")) {
