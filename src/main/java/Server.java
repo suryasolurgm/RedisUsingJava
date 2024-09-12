@@ -9,7 +9,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class Server {
     private static final int BUFFER_SIZE = 1024;
@@ -18,8 +20,7 @@ public class Server {
     private final String role;
     private final String masterHost;
     private final int masterPort;
-    private SocketChannel replicaChannel;
-
+    private final List<SocketChannel> replicaChannels = new ArrayList<>();
     public Server(CommandFactory commandFactory, int port,String role, String masterHost, int masterPort) {
         this.commandFactory = commandFactory;
         this.port = port;
@@ -109,7 +110,7 @@ public class Server {
         ByteBuffer response;
         if (cmd != null) {
             response = cmd.execute(parsedCommand);
-            if (commandFactory.isWriteCommand(parsedCommand[0]) && replicaChannel != null) {
+            if (commandFactory.isWriteCommand(parsedCommand[0]) && !replicaChannels.isEmpty()) {
                 propagateCommandToReplica(buffer);
             }
         } else {
@@ -120,14 +121,17 @@ public class Server {
         clientSocket.write(response);
         // Store the replica port number by getting the information from the channel
         if (cmd instanceof ReplconfCommand) {
-            if(replicaChannel == null){
-                replicaChannel = clientSocket;
+            if("listening-port".equals(parsedCommand[1])){
+                replicaChannels.add(clientSocket);
             }
         }
     }
     private void propagateCommandToReplica(ByteBuffer buffer) throws IOException {
-        buffer.rewind();
-        replicaChannel.write(buffer);
+
+        for (SocketChannel replicaChannel : replicaChannels) {
+            buffer.rewind();
+            replicaChannel.write(buffer);
+        }
 
     }
     private String[] parseRESP(String command) {
