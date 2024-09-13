@@ -1,11 +1,13 @@
 import factories.CommandFactory;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 ///mnt/c/Users/surya/IdeaProjects/codecrafters-redis-java
 
 public class Main {
-    private static final Map<String, String> dataStore = new HashMap<>();
-    private static final Map<String, Long> expiryStore = new HashMap<>();
+    private static final Map<String, String> dataStore = new ConcurrentHashMap<>();
+    private static final Map<String, Long> expiryStore = new ConcurrentHashMap<>();
     private static String dir = "/tmp";
     private static String dbfilename = "dump.rdb";
     private static CommandFactory commandFactory ;
@@ -15,7 +17,7 @@ public class Main {
     private static String masterHost = null;
     private static int masterPort = 0;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         int port = 6379;
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {

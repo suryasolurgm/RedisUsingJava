@@ -12,6 +12,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 public class Server {
     private static final int BUFFER_SIZE = 1024;
@@ -21,7 +22,9 @@ public class Server {
     private final String masterHost;
     private final int masterPort;
     private final List<SocketChannel> replicaChannels = new ArrayList<>();
-    public Server(CommandFactory commandFactory, int port,String role, String masterHost, int masterPort) {
+    private final Semaphore semaphore = new Semaphore(1);
+
+    public Server(CommandFactory commandFactory, int port, String role, String masterHost, int masterPort) {
         this.commandFactory = commandFactory;
         this.port = port;
         this.role = role;
@@ -29,11 +32,14 @@ public class Server {
         this.masterPort = masterPort;
     }
 
-    public void start() {
+    public void start() throws InterruptedException {
         if ("slave".equals(role)) {
-            ReplicaClient replicaClient = new ReplicaClient(masterHost, masterPort,port);
-            replicaClient.start();
+            ReplicaClient replicaClient = new ReplicaClient(masterHost, masterPort, port, commandFactory, semaphore);
+            Thread thread = new Thread(replicaClient);
+            thread.setPriority(Thread.MAX_PRIORITY);
+            thread.start();
         }
+
 
 
             try (Selector selector = Selector.open();
@@ -119,21 +125,18 @@ public class Server {
         }
 
         clientSocket.write(response);
-        // Store the replica port number by getting the information from the channel
-        if (cmd instanceof ReplconfCommand) {
-            if("listening-port".equals(parsedCommand[1])){
-                replicaChannels.add(clientSocket);
-            }
+        if (cmd instanceof ReplconfCommand && "listening-port".equals(parsedCommand[1])) {
+            replicaChannels.add(clientSocket);
         }
     }
-    private void propagateCommandToReplica(ByteBuffer buffer) throws IOException {
 
+    private void propagateCommandToReplica(ByteBuffer buffer) throws IOException {
         for (SocketChannel replicaChannel : replicaChannels) {
             buffer.rewind();
             replicaChannel.write(buffer);
         }
-
     }
+
     private String[] parseRESP(String command) {
         String[] lines = command.split("\r\n");
         if (lines.length < 3 || !lines[0].startsWith("*")) {
