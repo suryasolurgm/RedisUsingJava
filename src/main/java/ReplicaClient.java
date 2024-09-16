@@ -17,7 +17,7 @@ public class ReplicaClient implements Runnable {
     private final CommandFactory commandFactory;
     private final Semaphore semaphore;
     private SocketChannel masterChannel;
-
+    private long offset = 0;
     public ReplicaClient(String masterHost, int masterPort, int replicaPort, CommandFactory commandFactory, Semaphore semaphore) {
         this.masterHost = masterHost;
         this.masterPort = masterPort;
@@ -149,9 +149,10 @@ public class ReplicaClient implements Runnable {
                             buffer.get();
                             buffer.get();
                             String command = commandBuilder.toString().trim();
-                            System.out.println("Received command: " + command.trim());
+                            System.out.println("Received command: " + command);
                             System.out.println((buffer.remaining() > 0) ? "Remaining bytes: " + buffer.remaining() : "No remaining bytes");
                             processCommand(command); // Handle each command
+                            System.out.println("Offset: " + offset);
                             commandBuilder.setLength(0); // Clear for the next command
                         }
                     }
@@ -204,11 +205,12 @@ public class ReplicaClient implements Runnable {
         ByteBuffer response;
         if (cmd != null && !"replconf".equalsIgnoreCase(parsedCommand[0])) {
             response = cmd.execute(parsedCommand);
-
+            offset += command.length()+2;
         }else if ("replconf".equalsIgnoreCase(parsedCommand[0]) && "getack".equalsIgnoreCase(parsedCommand[1])) {
             // Handle REPLCONF GETACK command
-            String ackResponse = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+            String ackResponse = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$" + String.valueOf(offset).length() + "\r\n" + offset + "\r\n";
             response = ByteBuffer.wrap(ackResponse.getBytes());
+            offset += command.length()+2;
             try {
                 SocketChannel socketChannel = masterChannel;
                 socketChannel.write(response);
