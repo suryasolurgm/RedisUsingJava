@@ -16,6 +16,7 @@ public class ReplicaClient implements Runnable {
     private final int replicaPort;
     private final CommandFactory commandFactory;
     private final Semaphore semaphore;
+    private SocketChannel masterChannel;
 
     public ReplicaClient(String masterHost, int masterPort, int replicaPort, CommandFactory commandFactory, Semaphore semaphore) {
         this.masterHost = masterHost;
@@ -33,7 +34,7 @@ public class ReplicaClient implements Runnable {
                 socketChannel.connect(new InetSocketAddress(masterHost, masterPort));
                 socketChannel.configureBlocking(true);
                 System.out.println("Connected to master at " + masterHost + ":" + masterPort);
-
+                masterChannel = socketChannel;
                 // Perform handshake with master
                 performHandshake(socketChannel);
                 semaphore.release();
@@ -201,9 +202,19 @@ public class ReplicaClient implements Runnable {
         Command cmd = commandFactory.getCommand(parsedCommand[0]);
         System.out.println("Command: " + parsedCommand[0]);
         ByteBuffer response;
-        if (cmd != null) {
+        if (cmd != null && !"replconf".equalsIgnoreCase(parsedCommand[0])) {
             response = cmd.execute(parsedCommand);
 
+        }else if ("replconf".equalsIgnoreCase(parsedCommand[0]) && "getack".equalsIgnoreCase(parsedCommand[1])) {
+            // Handle REPLCONF GETACK command
+            String ackResponse = "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0\r\n";
+            response = ByteBuffer.wrap(ackResponse.getBytes());
+            try {
+                SocketChannel socketChannel = masterChannel;
+                socketChannel.write(response);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         } else {
             String errorMessage = "-ERR unknown command '" + parsedCommand[0] + "'\r\n";
             response = ByteBuffer.wrap(errorMessage.getBytes());
