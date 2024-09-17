@@ -1,8 +1,9 @@
 import factories.CommandFactory;
-import java.util.HashMap;
+import server.RedisServer;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+
 ///mnt/c/Users/surya/IdeaProjects/codecrafters-redis-java
 
 public class Main {
@@ -16,7 +17,6 @@ public class Main {
     private static final long replicationOffset = 0;
     private static String masterHost = null;
     private static int masterPort = 0;
-
     public static void main(String[] args) throws InterruptedException {
         int port = 6379;
         for (int i = 0; i < args.length; i++) {
@@ -61,12 +61,11 @@ public class Main {
                     break;
             }
         }
-
         commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename, role, replicationId, replicationOffset);
         RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore, expiryStore);
         rdbLoader.load();
 
-        Server server = new Server(commandFactory, port, role, masterHost, masterPort);
+        RedisServer server = RedisServer.getInstance(commandFactory, port, role, masterHost, masterPort);
         server.start();
 
     }

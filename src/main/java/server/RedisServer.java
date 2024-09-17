@@ -1,5 +1,9 @@
+package server;
+
 import commands.Command;
 import commands.ReplconfCommand;
+import commands.WaitCommand;
+import connections.ReplicaClient;
 import factories.CommandFactory;
 
 import java.io.IOException;
@@ -14,9 +18,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-public class Server {
+public class RedisServer {
     private static final int BUFFER_SIZE = 1024;
     private final CommandFactory commandFactory;
+    private static RedisServer instance;
     private final int port;
     private final String role;
     private final String masterHost;
@@ -24,12 +29,18 @@ public class Server {
     private final List<SocketChannel> replicaChannels = new ArrayList<>();
     private final Semaphore semaphore = new Semaphore(1);
 
-    public Server(CommandFactory commandFactory, int port, String role, String masterHost, int masterPort) {
+    private RedisServer(CommandFactory commandFactory, int port, String role, String masterHost, int masterPort) {
         this.commandFactory = commandFactory;
         this.port = port;
         this.role = role;
         this.masterHost = masterHost;
         this.masterPort = masterPort;
+    }
+    public static synchronized RedisServer getInstance(CommandFactory commandFactory, int port, String role, String masterHost, int masterPort) {
+        if (instance == null) {
+            instance = new RedisServer(commandFactory, port, role, masterHost, masterPort);
+        }
+        return instance;
     }
 
     public void start() throws InterruptedException {
@@ -115,6 +126,9 @@ public class Server {
         Command cmd = commandFactory.getCommand(parsedCommand[0]);
         ByteBuffer response;
         if (cmd != null) {
+            if(cmd instanceof WaitCommand) {
+                ((WaitCommand) cmd).setServer(this);
+            }
             response = cmd.execute(parsedCommand);
             if (commandFactory.isWriteCommand(parsedCommand[0]) && !replicaChannels.isEmpty()) {
                 propagateCommandToReplica(buffer);
@@ -154,5 +168,8 @@ public class Server {
         }
 
         return result;
+    }
+    public int getReplicaCount() {
+        return replicaChannels.size();
     }
 }

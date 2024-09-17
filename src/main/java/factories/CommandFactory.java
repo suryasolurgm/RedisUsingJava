@@ -4,6 +4,7 @@ import commands.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import server.RedisServer;
 
 public class CommandFactory {
     private final Map<String, Command> commandMap = new HashMap<>();

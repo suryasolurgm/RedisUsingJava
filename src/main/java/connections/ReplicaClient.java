@@ -1,5 +1,6 @@
+package connections;
+
 import commands.Command;
-import commands.ReplconfCommand;
 import factories.CommandFactory;
 
 import java.io.IOException;
@@ -46,7 +47,7 @@ public class ReplicaClient implements Runnable {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.err.println("ReplicaClient interrupted: " + e.getMessage());
+            System.err.println("connections.ReplicaClient interrupted: " + e.getMessage());
         } finally {
             semaphore.release();
         }
