@@ -19,6 +19,7 @@ public class CommandFactory {
         commandMap.put("INFO", new InfoCommand(role, replicationId, replicationOffset));
         commandMap.put("REPLCONF", new ReplconfCommand());
         commandMap.put("PSYNC", new PsyncCommand(replicationId, replicationOffset));
+        commandMap.put("WAIT", new WaitCommand());
 
     }
     public boolean isWriteCommand(String commandName) {

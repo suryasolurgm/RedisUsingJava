@@ -170,7 +170,7 @@ public class ReplicaClient implements Runnable {
         if (lines.length < 2) {
             return false;
         }
-
+        //*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$3\r\n154\r\n
         int expectedArgs = Integer.parseInt(lines[0].substring(1));
         int currentArgs = 0;
 
