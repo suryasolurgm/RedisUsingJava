@@ -16,6 +16,10 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 
 public class RedisServer {
@@ -28,6 +32,9 @@ public class RedisServer {
     private final int masterPort;
     private final List<SocketChannel> replicaChannels = new ArrayList<>();
     private final Semaphore semaphore = new Semaphore(1);
+    private final Map<SocketChannel, Long> replicaOffsets = new ConcurrentHashMap<>();
+    private long currentOffset = 0;
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
 
     private RedisServer(CommandFactory commandFactory, int port, String role, String masterHost, int masterPort) {
         this.commandFactory = commandFactory;
@@ -47,7 +54,7 @@ public class RedisServer {
         if ("slave".equals(role)) {
             ReplicaClient replicaClient = new ReplicaClient(masterHost, masterPort, port, commandFactory, semaphore);
             Thread thread = new Thread(replicaClient);
-            thread.setPriority(Thread.MAX_PRIORITY);
+            //thread.setPriority(Thread.MAX_PRIORITY);
             thread.start();
         }
 
@@ -124,31 +131,68 @@ public class RedisServer {
         }
 
         Command cmd = commandFactory.getCommand(parsedCommand[0]);
-        ByteBuffer response;
+        ByteBuffer response ;
         if (cmd != null) {
             if(cmd instanceof WaitCommand) {
+                if(replicaChannels.isEmpty()){
+                    response = ByteBuffer.wrap(":0\r\n".getBytes());
+                    clientSocket.write(response);
+                    return;
+                }
+                System.out.println("Current offset after propogating inside redis server is "+currentOffset);
+                 sendGetAckToReplicas();
+                 System.out.println("Sent ack to replicas");
                 ((WaitCommand) cmd).setServer(this);
+                ((WaitCommand) cmd).setClientChannel(clientSocket);
+                long timeout = Long.parseLong(parsedCommand[2]);
+                scheduler.schedule(((WaitCommand) cmd), timeout, java.util.concurrent.TimeUnit.MILLISECONDS);
+
             }
-            response = cmd.execute(parsedCommand);
-            if (commandFactory.isWriteCommand(parsedCommand[0]) && !replicaChannels.isEmpty()) {
-                propagateCommandToReplica(buffer);
-            }
+                if (cmd instanceof ReplconfCommand && "ack".equalsIgnoreCase(parsedCommand[1])) {
+                    long offset = Long.parseLong(parsedCommand[2]);
+                    System.out.println("Received ack from replica at offset " + offset);
+                    System.out.println("Replica channel is " + clientSocket);
+                    replicaOffsets.put(clientSocket, offset);
+                    System.out.println("Replica offset in hashmap " + replicaOffsets.get(clientSocket) + " for channel " + clientSocket);
+                }
+                response = cmd.execute(parsedCommand);
+                if (commandFactory.isWriteCommand(parsedCommand[0]) && !replicaChannels.isEmpty()) {
+                    System.out.println("Propagating command to replicas");
+                    System.out.println("command is "+command);
+                    propagateCommandToReplica(buffer);
+                }
+
         } else {
             String errorMessage = "-ERR unknown command '" + parsedCommand[0] + "'\r\n";
             response = ByteBuffer.wrap(errorMessage.getBytes());
         }
+        if (!(cmd instanceof ReplconfCommand && "ack".equalsIgnoreCase(parsedCommand[1])) && !(cmd instanceof WaitCommand)) {
+            System.out.println("Writing response to client"+response+" for command "+command+" for channel "+clientSocket);
+            clientSocket.write(response);
+        }
 
-        clientSocket.write(response);
         if (cmd instanceof ReplconfCommand && "listening-port".equals(parsedCommand[1])) {
             replicaChannels.add(clientSocket);
         }
     }
 
     private void propagateCommandToReplica(ByteBuffer buffer) throws IOException {
+        if(currentOffset == 0) {
+            currentOffset+=buffer.remaining();
+        }else{
+            currentOffset+=buffer.remaining()+37;
+        }
+
         for (SocketChannel replicaChannel : replicaChannels) {
             buffer.rewind();
             replicaChannel.write(buffer);
         }
+
+//        System.out.println("Current offset after propogating inside redis server is "+currentOffset);
+//
+//        sendGetAckToReplicas();
+//        System.out.println("Sent ack to replicas");
+
     }
 
     private String[] parseRESP(String command) {
@@ -169,7 +213,36 @@ public class RedisServer {
 
         return result;
     }
+    public void sendGetAckToReplicas() throws IOException {
+        String getAckCommand = "*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n";
+        ByteBuffer buffer = ByteBuffer.wrap(getAckCommand.getBytes());
+        for (SocketChannel replicaChannel : replicaChannels) {
+            buffer.rewind();
+            replicaChannel.write(buffer);
+        }
+    }
+    public int getProcessedReplicaCount(long requiredOffset) {
+        int count = 0;
+        for (Long offset : replicaOffsets.values()) {
+            if (offset >= requiredOffset) {
+                count++;
+            }
+        }
+        System.out.println("Count of processed replicas is "+count);
+        return count;
+    }
     public int getReplicaCount() {
         return replicaChannels.size();
     }
+
+    public long getCurrentOffset() {
+        return currentOffset;
+    }
+    public void addOffset(long offset) {
+        currentOffset += offset;
+    }
+    public ScheduledExecutorService getScheduler() {
+        return scheduler;
+    }
+
 }

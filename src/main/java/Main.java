@@ -1,6 +1,7 @@
 import factories.CommandFactory;
 import server.RedisServer;
 
+import java.nio.channels.SocketChannel;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,6 +18,7 @@ public class Main {
     private static final long replicationOffset = 0;
     private static String masterHost = null;
     private static int masterPort = 0;
+    private static final Map<SocketChannel, Long> replicaOffsets = new ConcurrentHashMap<>();
     public static void main(String[] args) throws InterruptedException {
         int port = 6379;
         for (int i = 0; i < args.length; i++) {
@@ -61,7 +63,7 @@ public class Main {
                     break;
             }
         }
-        commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename, role, replicationId, replicationOffset);
+        commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename, role, replicationId, replicationOffset,replicaOffsets);
         RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore, expiryStore);
         rdbLoader.load();
 
