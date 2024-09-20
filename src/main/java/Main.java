@@ -1,5 +1,6 @@
 import factories.CommandFactory;
 import server.RedisServer;
+import server.ServerConfig;
 
 import java.nio.channels.SocketChannel;
 import java.util.Map;
@@ -66,8 +67,8 @@ public class Main {
         commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename, role, replicationId, replicationOffset,replicaOffsets);
         RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore, expiryStore);
         rdbLoader.load();
-
-        RedisServer server = RedisServer.getInstance(commandFactory, port, role, masterHost, masterPort);
+        ServerConfig config = new ServerConfig(port, role, masterHost, masterPort);
+        RedisServer server = RedisServer.getInstance(commandFactory, config);
         server.start();
 
     }

@@ -22,7 +22,7 @@ public class CommandFactory {
         commandMap.put("REPLCONF", new ReplconfCommand(replicaOffsets));
         commandMap.put("PSYNC", new PsyncCommand(replicationId, replicationOffset));
         commandMap.put("WAIT", new WaitCommand());
-
+        commandMap.put("TYPE", new TypeCommand(dataStore));
     }
     public boolean isWriteCommand(String commandName) {
         switch (commandName.toUpperCase()) {
