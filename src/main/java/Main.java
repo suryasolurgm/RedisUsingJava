@@ -12,6 +12,7 @@ public class Main {
     private static final Map<String, String> dataStore = new ConcurrentHashMap<>();
     private static final Map<String, Map<String,String>> streamDataStore = new ConcurrentHashMap<>();
     private static final Map<String, Long> expiryStore = new ConcurrentHashMap<>();
+    private static final Map<String, String> lastEntryIdStore = new ConcurrentHashMap<>();
     private static String dir = "/tmp";
     private static String dbfilename = "dump.rdb";
     private static CommandFactory commandFactory ;
@@ -66,7 +67,7 @@ public class Main {
             }
         }
         commandFactory = new CommandFactory(dataStore, expiryStore, dir, dbfilename,
-                role, replicationId, replicationOffset,replicaOffsets,streamDataStore);
+                role, replicationId, replicationOffset,replicaOffsets,streamDataStore, lastEntryIdStore);
         RDBLoader rdbLoader = new RDBLoader(dir, dbfilename, dataStore, expiryStore);
         rdbLoader.load();
         ServerConfig config = new ServerConfig(port, role, masterHost, masterPort);
