@@ -21,7 +21,9 @@ public class XAddCommand implements Command {
 
         String streamKey = args[1];
         String entryId = args[2];
-        if (entryId.endsWith("-*")) {
+        if (entryId.equals("*")) {
+            entryId = generateNextEntryId(streamKey);
+        } else if (entryId.endsWith("-*")) {
             entryId = generateNextEntryId(entryId, streamKey);
         }
         if (!isValidEntryId(entryId, streamKey)) {
@@ -42,6 +44,23 @@ public class XAddCommand implements Command {
 
         String response = "$" + entryId.length() + "\r\n" + entryId + "\r\n";
         return ByteBuffer.wrap(response.getBytes());
+    }
+    private String generateNextEntryId(String streamKey) {
+        long millisecondsTime = System.currentTimeMillis();
+        long sequenceNumber = 0;
+
+        String lastEntryId = lastEntryIdStore.get(streamKey);
+        if (lastEntryId != null) {
+            String[] lastIdParts = lastEntryId.split("-");
+            long lastMilliseconds = Long.parseLong(lastIdParts[0]);
+            long lastSequence = Long.parseLong(lastIdParts[1]);
+
+            if (millisecondsTime == lastMilliseconds) {
+                sequenceNumber = lastSequence + 1;
+            }
+        }
+
+        return millisecondsTime + "-" + sequenceNumber;
     }
     private String generateNextEntryId(String entryId, String streamKey) {
         String[] idParts = entryId.split("-");

@@ -2,4 +2,3 @@ java_redis.jar
 target/*
 target/
 .idea/
-README.md
