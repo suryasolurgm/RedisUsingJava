@@ -22,7 +22,7 @@ This project is a custom implementation of a Redis server in Java. It supports b
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/suryasolurgm/redis-server.git
+    git clone https://github.com/suryasolurgm/RedisUsingJava.git
     cd redis-server
     ```
 
@@ -36,4 +36,5 @@ This project is a custom implementation of a Redis server in Java. It supports b
 To start the Redis server, run the `Main` class:
 
 ```sh
-java -cp target/redis-server-1.0-SNAPSHOT.jar Main
+java -cp target/build-your-own-redis-1.0.jar Main
+
