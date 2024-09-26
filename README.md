@@ -1,34 +1,39 @@
-[![progress-banner](https://backend.codecrafters.io/progress/redis/d1335db4-e8cc-4bdd-b34a-65b197dd538e)](https://app.codecrafters.io/users/suryasolurgm?r=2qF)
+# Redis Server Implementation
 
-This is a starting point for Java solutions to the
-["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
+This project is a custom implementation of a Redis server in Java. It supports basic Redis commands and includes functionality for handling streams using the `XADD` command.
 
-In this challenge, you'll build a toy Redis clone that's capable of handling
-basic commands like `PING`, `SET` and `GET`. Along the way we'll learn about
-event loops, the Redis protocol and more.
+## Features
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+- **Basic Redis Commands**: Supports commands like `PING`, `ECHO`, `SET`, `GET`, `CONFIG`, `KEYS`, `INFO`, `REPLCONF`, `PSYNC`, `WAIT`, and `TYPE`.
+- **Stream Support**: Implements the `XADD` command for adding entries to streams.
+- **Thread Management**: Uses a thread pool for handling client connections.
+- **Logging**: Utilizes the `Logger` framework for logging.
+- **Singleton Pattern**: Ensures `RedisServer` is a singleton.
+- **Error Handling**: Improved error handling and response.
 
-# Passing the first stage
+## Getting Started
 
-The entry point for your Redis implementation is in `src/main/java/Main.java`.
-Study and uncomment the relevant code, and push your changes to pass the first
-stage:
+### Prerequisites
+
+- Java 8 or higher
+- Maven
+
+### Installation
+
+1. Clone the repository:
+    ```sh
+    git clone https://github.com/suryasolurgm/redis-server.git
+    cd redis-server
+    ```
+
+2. Build the project using Maven:
+    ```sh
+    mvn clean install
+    ```
+
+### Running the Server
+
+To start the Redis server, run the `Main` class:
 
 ```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
-```
-
-That's all!
-
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `java (1.8)` installed locally
-1. Run `./your_program.sh` to run your Redis server, which is implemented in
-   `src/main/java/Main.java`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+java -cp target/redis-server-1.0-SNAPSHOT.jar Main
