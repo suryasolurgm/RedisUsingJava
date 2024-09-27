@@ -4,13 +4,14 @@ import server.ServerConfig;
 
 import java.nio.channels.SocketChannel;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 ///mnt/c/Users/surya/IdeaProjects/codecrafters-redis-java
 
 public class Main {
     private static final Map<String, String> dataStore = new ConcurrentHashMap<>();
-    private static final Map<String, Map<String,String>> streamDataStore = new ConcurrentHashMap<>();
+    private static final Map<String, TreeMap<String, Map<String, String>>> streamDataStore= new ConcurrentHashMap<>();
     private static final Map<String, Long> expiryStore = new ConcurrentHashMap<>();
     private static final Map<String, String> lastEntryIdStore = new ConcurrentHashMap<>();
     private static String dir = "/tmp";

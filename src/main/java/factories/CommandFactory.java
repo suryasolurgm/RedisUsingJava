@@ -5,13 +5,15 @@ import commands.*;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
+
 import server.RedisServer;
 
 public class CommandFactory {
     private final Map<String, Command> commandMap = new HashMap<>();
 
     public CommandFactory(Map<String, String> dataStore, Map<String, Long> expiryStore,String dir, String dbfilename, String role,
-                          String replicationId, long replicationOffset,Map<SocketChannel, Long> replicaOffsets,Map<String,Map<String,String>> streamDataStore,Map<String,String> lastEntryIdStore) {
+                          String replicationId, long replicationOffset,Map<SocketChannel, Long> replicaOffsets, Map<String, TreeMap<String, Map<String, String>>> streamDataStore,Map<String,String> lastEntryIdStore) {
         commandMap.put("PING", new PingCommand());
         commandMap.put("ECHO", new EchoCommand());
         commandMap.put("SET", new SetCommand(dataStore, expiryStore));
@@ -24,12 +26,14 @@ public class CommandFactory {
         commandMap.put("WAIT", new WaitCommand());
         commandMap.put("TYPE", new TypeCommand(dataStore, streamDataStore));
         commandMap.put("XADD", new XAddCommand(streamDataStore,lastEntryIdStore ));
+        commandMap.put("XRANGE", new XRangeCommand(streamDataStore));
     }
     public boolean isWriteCommand(String commandName) {
         switch (commandName.toUpperCase()) {
             case "SET":
             case "DEL":
             case "XADD":
+            case "XRANGE":
                 return true;
             default:
                 return false;

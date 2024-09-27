@@ -2,12 +2,13 @@ package commands;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class TypeCommand implements Command {
     private final Map<String, String> dataStore;
-    private final Map<String, Map<String, String>> streamDataStore;
+    private final Map<String, TreeMap<String, Map<String, String>>> streamDataStore;
 
-    public TypeCommand(Map<String, String> dataStore, Map<String, Map<String, String>> streamDataStore) {
+    public TypeCommand(Map<String, String> dataStore, Map<String, TreeMap<String, Map<String, String>>> streamDataStore) {
         this.dataStore = dataStore;
         this.streamDataStore = streamDataStore;
     }

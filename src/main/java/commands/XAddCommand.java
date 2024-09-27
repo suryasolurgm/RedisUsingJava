@@ -2,13 +2,14 @@ package commands;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class XAddCommand implements Command {
-    private final Map<String, Map<String, String>> streamDataStore;
+    private final Map<String, TreeMap<String, Map<String, String>>> streamDataStore;
     private final Map<String, String> lastEntryIdStore;
 
-    public XAddCommand(Map<String, Map<String, String>> streamDataStore, Map<String, String> lastEntryIdStore) {
+    public XAddCommand(Map<String, TreeMap<String, Map<String, String>>> streamDataStore, Map<String, String> lastEntryIdStore) {
         this.streamDataStore = streamDataStore;
         this.lastEntryIdStore = lastEntryIdStore;
     }
@@ -34,12 +35,12 @@ public class XAddCommand implements Command {
             return ByteBuffer.wrap(("-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n").getBytes());
         }
 
-        Map<String, String> stream = streamDataStore.computeIfAbsent(streamKey, k -> new ConcurrentHashMap<>());
-
+        TreeMap<String, Map<String, String>> stream = streamDataStore.computeIfAbsent(streamKey, k -> new TreeMap<>());
+        Map<String, String> entry = new ConcurrentHashMap<>();
         for (int i = 3; i < args.length; i += 2) {
-            stream.put(args[i], args[i + 1]);
+            entry.put(args[i], args[i + 1]);
         }
-
+        stream.put(entryId, entry);
         lastEntryIdStore.put(streamKey, entryId);
 
         String response = "$" + entryId.length() + "\r\n" + entryId + "\r\n";
