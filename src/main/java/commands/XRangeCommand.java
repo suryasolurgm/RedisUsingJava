@@ -50,6 +50,9 @@ public class XRangeCommand implements Command {
     }
 
     private String normalizeId(String id) {
+        if (id.equals("+")) {
+            return Long.MAX_VALUE + "-0";
+        }
         if (!id.contains("-")) {
             return id + "-0";
         }
