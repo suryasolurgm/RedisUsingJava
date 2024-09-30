@@ -19,6 +19,7 @@ public class XRangeCommand implements Command {
 
         String streamKey = args[1];
         String startId = normalizeId(args[2]);
+        System.out.println("startId: "+startId);
         String endId = normalizeId(args[3]);
 
         TreeMap<String, Map<String, String>> stream = streamDataStore.get(streamKey);
