@@ -3,6 +3,7 @@ package server;
 import commands.Command;
 import commands.ReplconfCommand;
 import commands.WaitCommand;
+import commands.XReadCommand;
 import connections.ReplicaClient;
 import factories.CommandFactory;
 
@@ -131,6 +132,9 @@ public class RedisServer {
             handleWaitCommand((WaitCommand) cmd, parsedCommand, clientSocket);
         } else if (cmd instanceof ReplconfCommand && "ack".equalsIgnoreCase(parsedCommand[1])) {
             handleReplconfAck(parsedCommand, clientSocket);
+        } else if(cmd instanceof XReadCommand && "block".equalsIgnoreCase(parsedCommand[1])) {
+            handleXreadCommand((XReadCommand) cmd, parsedCommand, clientSocket);
+
         } else {
             ByteBuffer response = cmd.execute(parsedCommand);
             if (commandFactory.isWriteCommand(parsedCommand[0]) && !replicationManager.getReplicaChannels().isEmpty()) {
@@ -145,7 +149,15 @@ public class RedisServer {
             replicationManager.addReplicaChannel(clientSocket);
         }
     }
-
+    private void handleXreadCommand(XReadCommand cmd, String[] parsedCommand, SocketChannel clientSocket) {
+        long timeout = Long.parseLong(parsedCommand[2]);
+        System.out.println("timeout: "+timeout);
+        String[] filtered = Arrays.stream(parsedCommand)
+                .filter(s -> !s.equals("block") && !s.equals(String.valueOf(timeout)))
+                .toArray(String[]::new);
+        cmd.setArgs(filtered);
+        scheduledExecutorService.schedule(cmd, timeout, TimeUnit.MILLISECONDS);
+    }
     private void handleWaitCommand(WaitCommand cmd, String[] parsedCommand, SocketChannel clientSocket) {
         if (replicationManager.getReplicaChannels().isEmpty()) {
             try {

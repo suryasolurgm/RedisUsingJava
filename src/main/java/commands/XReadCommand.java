@@ -1,18 +1,26 @@
 package commands;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
 
-public class XReadCommand implements Command {
+public class XReadCommand implements Command, Callable<ByteBuffer> {
     private final Map<String, TreeMap<String, Map<String, String>>> streamDataStore;
-
+    private SocketChannel clientChannel;
+    private String[] args;
     public XReadCommand(Map<String, TreeMap<String, Map<String, String>>> streamDataStore) {
         this.streamDataStore = streamDataStore;
     }
-
+    public void setClientChannel(SocketChannel clientChannel) {
+        this.clientChannel = clientChannel;
+    }
+    public void setArgs(String[] args) {
+        this.args = args;
+    }
     @Override
     public ByteBuffer execute(String[] args) {
         if (args.length < 4 || !args[1].equals("streams")) {
@@ -61,11 +69,25 @@ public class XReadCommand implements Command {
                     response.append("$").append(field.getValue().length()).append("\r\n").append(field.getValue()).append("\r\n");
                 }
             } else {
-                response.append("*0\r\n");
+                //response.append("*0\r\n");
+                response.append("$-1\r\n");
             }
         }
 
         return ByteBuffer.wrap(response.toString().getBytes());
+    }
+
+    @Override
+    public ByteBuffer call() throws Exception {
+        try {
+            ByteBuffer response = execute(args);
+            clientChannel.write(response);
+            return response;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
     }
 }
 
