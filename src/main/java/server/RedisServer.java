@@ -150,10 +150,15 @@ public class RedisServer {
         }
     }
     private void handleXreadCommand(XReadCommand cmd, String[] parsedCommand, SocketChannel clientSocket) {
-        long timeout = Long.parseLong(parsedCommand[2]);
+        long timeout=0;
+        if(Long.parseLong(parsedCommand[2])==0){
+            timeout = 1000;
+        }else{
+            timeout = Long.parseLong(parsedCommand[2]);
+        }
         System.out.println("timeout: "+timeout);
         String[] filtered = Arrays.stream(parsedCommand)
-                .filter(s -> !s.equals("block") && !s.equals(String.valueOf(timeout)))
+                .filter(s -> !s.equals("block") && !s.equals(parsedCommand[2]))
                 .toArray(String[]::new);
         cmd.setClientChannel(clientSocket);
         cmd.setArgs(filtered);
