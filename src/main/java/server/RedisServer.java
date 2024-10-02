@@ -155,6 +155,7 @@ public class RedisServer {
         String[] filtered = Arrays.stream(parsedCommand)
                 .filter(s -> !s.equals("block") && !s.equals(String.valueOf(timeout)))
                 .toArray(String[]::new);
+        cmd.setClientChannel(clientSocket);
         cmd.setArgs(filtered);
         scheduledExecutorService.schedule(cmd, timeout, TimeUnit.MILLISECONDS);
     }
