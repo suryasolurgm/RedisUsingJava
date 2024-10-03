@@ -160,6 +160,9 @@ public class RedisServer {
         String[] filtered = Arrays.stream(parsedCommand)
                 .filter(s -> !s.equals("block") && !s.equals(parsedCommand[2]))
                 .toArray(String[]::new);
+        if(filtered[filtered.length-1].equals("$")){
+            filtered[filtered.length-1] = "0-1";
+        }
         cmd.setClientChannel(clientSocket);
         cmd.setArgs(filtered);
         scheduledExecutorService.schedule(cmd, timeout, TimeUnit.MILLISECONDS);

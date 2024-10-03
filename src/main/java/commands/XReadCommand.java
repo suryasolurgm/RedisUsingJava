@@ -21,6 +21,11 @@ public class XReadCommand implements Command, Callable<ByteBuffer> {
     public void setArgs(String[] args) {
         this.args = args;
     }
+
+    public Map<String, TreeMap<String, Map<String, String>>> getStreamDataStore() {
+        return streamDataStore;
+    }
+
     @Override
     public ByteBuffer execute(String[] args) {
         if (args.length < 4 || !args[1].equals("streams")) {
