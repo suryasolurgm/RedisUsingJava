@@ -28,6 +28,7 @@ public class CommandFactory {
         commandMap.put("XADD", new XAddCommand(streamDataStore,lastEntryIdStore ));
         commandMap.put("XRANGE", new XRangeCommand(streamDataStore));
         commandMap.put("XREAD", new XReadCommand(streamDataStore));
+        commandMap.put("INCR", new IncrCommand(dataStore));
     }
     public boolean isWriteCommand(String commandName) {
         switch (commandName.toUpperCase()) {
@@ -36,6 +37,7 @@ public class CommandFactory {
             case "XADD":
             case "XRANGE":
             case "XREAD":
+            case "INCR":
                 return true;
             default:
                 return false;
