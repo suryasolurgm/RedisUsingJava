@@ -21,7 +21,8 @@ public class IncrCommand implements Command {
         String value = dataStore.get(key);
 
         if (value == null) {
-            return ByteBuffer.wrap("-ERR no such key\r\n".getBytes());
+            dataStore.put(key, "1");
+            return ByteBuffer.wrap(":1\r\n".getBytes());
         }
 
         try {
