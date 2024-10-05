@@ -14,7 +14,6 @@ import java.util.concurrent.*;
 public class RedisServer {
     private static final int BUFFER_SIZE = 1024;
     private static RedisServer instance;
-
     private final CommandFactory commandFactory;
     private final int port;
     private final ServerConfig config;
@@ -22,6 +21,8 @@ public class RedisServer {
     private final ConnectionManager connectionManager;
     private final ExecutorService executorService;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final Map<SocketChannel, List<String[]>> transactionQueue = new ConcurrentHashMap<>();
+    private final Map<SocketChannel, Boolean> inTransaction = new ConcurrentHashMap<>();
 
     private RedisServer(CommandFactory commandFactory, ServerConfig config) {
         this.commandFactory = commandFactory;
@@ -124,12 +125,17 @@ public class RedisServer {
             clientSocket.write(ByteBuffer.wrap(errorMessage.getBytes()));
             return;
         }
-
-        if (cmd instanceof WaitCommand) {
+        if(!(cmd instanceof ExecCommand) && inTransaction.get(clientSocket)!=null && inTransaction.get(clientSocket)){
+           transactionQueue.putIfAbsent(clientSocket, new ArrayList<>());
+           transactionQueue.get(clientSocket).add(parsedCommand);
+           clientSocket.write(ByteBuffer.wrap("+QUEUED\r\n".getBytes()));
+           return;
+        } else if (cmd instanceof WaitCommand) {
             handleWaitCommand((WaitCommand) cmd, parsedCommand, clientSocket);
         } else if (cmd instanceof MultiCommand) {
             handleMultiCommand((MultiCommand) cmd, parsedCommand, clientSocket);
-
+        }else if(cmd instanceof ExecCommand){
+            handleExecCommand((ExecCommand) cmd, parsedCommand, clientSocket);
         } else if (cmd instanceof ReplconfCommand && "ack".equalsIgnoreCase(parsedCommand[1])) {
             handleReplconfAck(parsedCommand, clientSocket);
         } else if(cmd instanceof XReadCommand && "block".equalsIgnoreCase(parsedCommand[1])) {
@@ -149,9 +155,27 @@ public class RedisServer {
             replicationManager.addReplicaChannel(clientSocket);
         }
     }
+    private void handleExecCommand(ExecCommand cmd, String[] parsedCommand, SocketChannel clientSocket) throws IOException {
+        if (inTransaction.get(clientSocket)==null || !inTransaction.get(clientSocket)) {
+            clientSocket.write(ByteBuffer.wrap("-ERR EXEC without MULTI\r\n".getBytes()));
+            return;
+        }
+        inTransaction.put(clientSocket, false);
+        List<String[]> commands = transactionQueue.get(clientSocket);
+        transactionQueue.remove(clientSocket);
+        if(commands==null){
+            clientSocket.write(ByteBuffer.wrap("*0\r\n".getBytes()));
+            return;
+        }
+        for(String[] command: commands){
+            ByteBuffer response = commandFactory.getCommand(command[0]).execute(command);
+            clientSocket.write(response);
+        }
+
+    }
     private void handleMultiCommand(MultiCommand cmd, String[] parsedCommand, SocketChannel clientSocket) throws IOException {
         ExecCommand execCommand = (ExecCommand) commandFactory.getCommand("EXEC");
-        execCommand.setInTransaction(true);
+        inTransaction.put(clientSocket, true);
         ByteBuffer response = cmd.execute(parsedCommand);
         clientSocket.write(response);
 
