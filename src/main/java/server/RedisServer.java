@@ -1,9 +1,6 @@
 package server;
 
-import commands.Command;
-import commands.ReplconfCommand;
-import commands.WaitCommand;
-import commands.XReadCommand;
+import commands.*;
 import connections.ReplicaClient;
 import factories.CommandFactory;
 
@@ -130,6 +127,9 @@ public class RedisServer {
 
         if (cmd instanceof WaitCommand) {
             handleWaitCommand((WaitCommand) cmd, parsedCommand, clientSocket);
+        } else if (cmd instanceof MultiCommand) {
+            handleMultiCommand((MultiCommand) cmd, parsedCommand, clientSocket);
+
         } else if (cmd instanceof ReplconfCommand && "ack".equalsIgnoreCase(parsedCommand[1])) {
             handleReplconfAck(parsedCommand, clientSocket);
         } else if(cmd instanceof XReadCommand && "block".equalsIgnoreCase(parsedCommand[1])) {
@@ -148,6 +148,13 @@ public class RedisServer {
         if (cmd instanceof ReplconfCommand && "listening-port".equals(parsedCommand[1])) {
             replicationManager.addReplicaChannel(clientSocket);
         }
+    }
+    private void handleMultiCommand(MultiCommand cmd, String[] parsedCommand, SocketChannel clientSocket) throws IOException {
+        ExecCommand execCommand = (ExecCommand) commandFactory.getCommand("EXEC");
+        execCommand.setInTransaction(true);
+        ByteBuffer response = cmd.execute(parsedCommand);
+        clientSocket.write(response);
+
     }
     private void handleXreadCommand(XReadCommand cmd, String[] parsedCommand, SocketChannel clientSocket) {
         long timeout=0;

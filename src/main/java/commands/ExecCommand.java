@@ -14,7 +14,8 @@ public class ExecCommand implements Command {
             return ByteBuffer.wrap("-ERR EXEC without MULTI\r\n".getBytes());
         }
         // Placeholder for future implementation when MULTI has been called
-        return ByteBuffer.wrap("+OK\r\n".getBytes());
+        inTransaction = false;
+        return ByteBuffer.wrap("*0\r\n".getBytes());
     }
     public void setInTransaction(boolean inTransaction) {
         this.inTransaction = inTransaction;
