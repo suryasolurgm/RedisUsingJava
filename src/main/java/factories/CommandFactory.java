@@ -30,6 +30,7 @@ public class CommandFactory {
         commandMap.put("XREAD", new XReadCommand(streamDataStore));
         commandMap.put("INCR", new IncrCommand(dataStore));
         commandMap.put("MULTI", new MultiCommand());
+        commandMap.put("EXEC", new ExecCommand());
     }
     public boolean isWriteCommand(String commandName) {
         switch (commandName.toUpperCase()) {
@@ -40,6 +41,7 @@ public class CommandFactory {
             case "XREAD":
             case "INCR":
             case "MULTI":
+            case "EXEC":
                 return true;
             default:
                 return false;
