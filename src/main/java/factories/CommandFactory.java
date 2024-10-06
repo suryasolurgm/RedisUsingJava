@@ -31,6 +31,7 @@ public class CommandFactory {
         commandMap.put("INCR", new IncrCommand(dataStore));
         commandMap.put("MULTI", new MultiCommand());
         commandMap.put("EXEC", new ExecCommand());
+        commandMap.put("DISCARD", new DiscardCommand());
     }
     public boolean isWriteCommand(String commandName) {
         switch (commandName.toUpperCase()) {
@@ -42,6 +43,7 @@ public class CommandFactory {
             case "INCR":
             case "MULTI":
             case "EXEC":
+            case "DISCARD":
                 return true;
             default:
                 return false;

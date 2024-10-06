@@ -142,6 +142,11 @@ public class RedisServer {
             handleXreadCommand((XReadCommand) cmd, parsedCommand, clientSocket);
 
         } else {
+            if(cmd instanceof DiscardCommand){
+                ((DiscardCommand) cmd).setClientSocket(clientSocket);
+                ((DiscardCommand) cmd).setInTransaction(inTransaction);
+                ((DiscardCommand) cmd).setTransactionQueue(transactionQueue);
+            }
             ByteBuffer response = cmd.execute(parsedCommand);
             if (commandFactory.isWriteCommand(parsedCommand[0]) && !replicationManager.getReplicaChannels().isEmpty()) {
                 replicationManager.propagateCommandToReplicas(buffer);
