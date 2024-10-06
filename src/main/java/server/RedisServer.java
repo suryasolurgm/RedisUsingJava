@@ -167,10 +167,20 @@ public class RedisServer {
             clientSocket.write(ByteBuffer.wrap("*0\r\n".getBytes()));
             return;
         }
-        for(String[] command: commands){
-            ByteBuffer response = commandFactory.getCommand(command[0]).execute(command);
-            clientSocket.write(response);
+        StringBuilder responseBuilder = new StringBuilder();
+        responseBuilder.append("*").append(commands.size()).append("\r\n");
+
+        for (String[] command : commands) {
+            Command queuedCommand = commandFactory.getCommand(command[0]);
+            if (queuedCommand != null) {
+                ByteBuffer response = queuedCommand.execute(command);
+                responseBuilder.append(new String(response.array(), 0, response.limit()));
+            } else {
+                responseBuilder.append("-ERR unknown command '").append(command[0]).append("'\r\n");
+            }
         }
+
+        clientSocket.write(ByteBuffer.wrap(responseBuilder.toString().getBytes()));
 
     }
     private void handleMultiCommand(MultiCommand cmd, String[] parsedCommand, SocketChannel clientSocket) throws IOException {
