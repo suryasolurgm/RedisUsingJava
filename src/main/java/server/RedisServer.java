@@ -125,7 +125,7 @@ public class RedisServer {
             clientSocket.write(ByteBuffer.wrap(errorMessage.getBytes()));
             return;
         }
-        if(!(cmd instanceof ExecCommand) && inTransaction.get(clientSocket)!=null && inTransaction.get(clientSocket)){
+        if(!(cmd instanceof ExecCommand)&& !(cmd instanceof DiscardCommand) && inTransaction.get(clientSocket)!=null && inTransaction.get(clientSocket)){
            transactionQueue.putIfAbsent(clientSocket, new ArrayList<>());
            transactionQueue.get(clientSocket).add(parsedCommand);
            clientSocket.write(ByteBuffer.wrap("+QUEUED\r\n".getBytes()));
